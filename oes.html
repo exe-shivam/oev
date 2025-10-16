@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Online Exam System — Registration</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Optional: jsPDF (kept from your original) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root{
+      --ink:#0b1021;
+      --indigo:#4f46e5;
+      --pink:#ec4899;
+      --sky:#38bdf8;
+      --glass:rgba(255,255,255,0.12);
+      --glass-strong:rgba(255,255,255,0.2);
+    }
+    
+    @keyframes float{
+      0%{ transform:translate(0,0) rotate(0deg) scale(1); }
+      50%{ transform:translate(20px,-20px) rotate(10deg) scale(1.08); }
+      100%{ transform:translate(0,0) rotate(0deg) scale(1); }
+    }
+
+    /* Glass + neon ring on hover */
+    .glass{
+      background:linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border:1px solid rgba(255,255,255,0.18);
+      box-shadow:
+        0 10px 30px rgba(2,6,23,0.25),
+        inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .ring-animated{
+      position:relative;
+    }
+    .ring-animated::after{
+      content:"";
+      position:absolute; inset:-1px; border-radius:1rem;
+      background: conic-gradient(from 180deg at 50% 50%, #fff0, #8b5cf6aa, #22d3eeaa, #ec4899aa, #fff0);
+      filter: blur(16px); opacity:0; transition:opacity .4s ease;
+      z-index:-1;
+    }
+
+    /* Floating labels */
+    .fl-group{ position:relative; }
+    .fl-input{
+      width:100%;
+      padding:1.1rem 1rem .9rem 2.75rem;
+      border:1px solid rgba(255,255,255,0.25);
+      border-radius:.85rem;
+      background: rgba(255,255,255,0.08);
+      color:#fff;
+      outline:none;
+      transition:border-color .25s, box-shadow .25s, background .25s;
+    }
+    .fl-input::placeholder{ color:transparent; }
+    .fl-label{
+      position:absolute; left:2.75rem; top:.9rem;
+      color:#dbeafe; font-size:.95rem; pointer-events:none;
+      transition: all .18s ease;
+      opacity:.85;
+    }
+    .fl-input:focus{ border-color:#a78bfa; box-shadow:0 0 0 4px rgba(79,70,229,.25); background: rgba(255,255,255,0.12); }
+    .fl-input:not(:placeholder-shown) + .fl-label,
+    .fl-input:focus + .fl-label{
+      top:-.55rem; left:2.5rem; font-size:.75rem; background:rgba(15,23,42,.8); padding:0 .35rem; border-radius:.35rem; opacity:.95;
+    }
+
+    /* Input icons */
+    .icon{
+      position:absolute; left:.9rem; top:50%; transform:translateY(-50%);
+      opacity:.85;
+    }
+
+    /* Button */
+    .btn-primary{
+      background:linear-gradient(135deg, #6366f1, #8b5cf6);
+      color:#fff; font-weight:700; border-radius:.9rem;
+      padding:.95rem 1.25rem;
+      box-shadow:0 12px 28px rgba(99,102,241,.35);
+      transition: transform .15s ease, box-shadow .25s ease, filter .25s ease;
+    }
+    .btn-primary:hover{ transform:translateY(-1px); filter:saturate(1.1); box-shadow:0 18px 36px rgba(79,70,229,.45); }
+    .btn-primary:active{ transform:translateY(0); }
+
+    /* Helper small */
+    .hint{ font-size:.8rem; opacity:.85; }
+
+    /* Success toast */
+    .toast{
+      animation: slideUp .35s ease;
+      background:linear-gradient(180deg, rgba(16,185,129,.12), rgba(16,185,129,.08));
+      border:1px solid rgba(16,185,129,.35);
+      backdrop-filter: blur(8px);
+    }
+    @keyframes slideUp{ from{ transform:translateY(10px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+
+    /* Footer */
+    .footer-grad{
+      background: linear-gradient(90deg, #6d28d9, #4f46e5, #1e3a8a);
+    }
+
+    /* Make select look like inputs */
+    select.fl-input { appearance:none; -webkit-appearance:none; background-image: none; }
+    .chev{
+      position:absolute; right:.9rem; top:50%; transform:translateY(-50%);
+      pointer-events:none; opacity:.9;
+    }
+
+    .glass:hover{
+      transform: scale(1.01);
+      box-shadow: red;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+  <!-- Header -->
+  <header class="relative z-10">
+    <div class="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 grid place-items-center shadow">
+          <img src="https://play-lh.googleusercontent.com/1KPzn7HwNabdhxQm6rXU39u0F5msen9BWx_rlEQ7kihQxrepF1ZepTiyvmBRChRYYR75=w600-h300-pc0xffffff-pd" height="100%" width="100%">
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-widest text-indigo-300/80">Scottish Public School</p>
+          <h1 class="text-xl font-extrabold tracking-tight">Exam Registration</h1>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center gap-2 text-sm text-slate-300">
+        <span class="px-2 py-1 rounded-lg bg-white/5">Secure</span>
+        <span class="px-2 py-1 rounded-lg bg-white/5">Fast</span>
+        <span class="px-2 py-1 rounded-lg bg-white/5">Mobile-friendly</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="relative z-10">
+    <section class="px-6 pb-10">
+      <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 items-stretch">
+
+        <!-- Left: Highlight / Features -->
+        <aside class="glass ring-animated rounded-2xl p-8 md:p-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/30 text-emerald-200 text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Registration Open Now
+          </div>
+
+          <h2 class="mt-4 text-3xl md:text-4xl font-black leading-tight">
+            Smooth, secure &amp; elegant <span class="text-indigo-300">Exam Onboarding</span>
+          </h2>
+
+          <p class="mt-3 text-slate-200/90">
+            Enter your details to reserve a seat. Your data is encrypted in transit and never shared.
+            You’ll receive an instant confirmation and a quick redirect to start your exam.
+          </p>
+
+          <ul class="mt-6 space-y-3 text-slate-200/90">
+            <li class="flex items-start gap-3">
+              <span class="mt-1 w-5 h-5 rounded-md bg-indigo-500/20 grid place-items-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              Instant registration with live validation
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-1 w-5 h-5 rounded-md bg-indigo-500/20 grid place-items-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              Works on any device—no app required
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-1 w-5 h-5 rounded-md bg-indigo-500/20 grid place-items-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              Minimal steps, beautiful experience
+            </li>
+          </ul>
+
+          <div class="mt-8 grid sm:grid-cols-3 gap-4">
+            <div class="rounded-xl bg-white/5 p-4 border border-white/10">
+              <p class="text-3xl font-extrabold">2</p><p class="hint mt-1">Minutes to register</p>
+            </div>
+            <div class="rounded-xl bg-white/5 p-4 border border-white/10">
+              <p class="text-3xl font-extrabold">100%</p><p class="hint mt-1">Mobile ready</p>
+            </div>
+            <div class="rounded-xl bg-white/5 p-4 border border-white/10">
+              <p class="text-3xl font-extrabold">0</p><p class="hint mt-1">Extra steps</p>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Right: Form -->
+        <div class="glass ring-animated rounded-2xl p-6 md:p-8 lg:p-10">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-indigo-200/80">Step 1 of 1</p>
+              <h3 class="text-2xl md:text-3xl font-extrabold">Student Details</h3>
+            </div>
+            <div class="w-28 h-2 rounded-full bg-white/10 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-indigo-400 to-fuchsia-400 w-full"></div>
+            </div>
+          </div>
+
+          <form id="registrationForm" class="mt-6 space-y-5">
+
+            <!-- Full Name -->
+            <div class="fl-group">
+              <span class="icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="opacity-90">
+                  <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke="#c7d2fe" stroke-width="1.6"/>
+                  <path d="M3 21a9 9 0 0 1 18 0" stroke="#c7d2fe" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <input type="text" id="fullName" name="fullName" class="fl-input" placeholder="Full Name" required minlength="2" />
+              <label for="fullName" class="fl-label">Full Name</label>
+            </div>
+
+            <!-- Email -->
+            <div class="fl-group">
+              <span class="icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="opacity-90">
+                  <path d="M4 6h16v12H4z" stroke="#c7d2fe" stroke-width="1.6" />
+                  <path d="m4 6 8 6 8-6" stroke="#c7d2fe" stroke-width="1.6" />
+                </svg>
+              </span>
+              <input type="email" id="email" name="email" class="fl-input" placeholder="Email" required />
+              <label for="email" class="fl-label">Email</label>
+            </div>
+
+            <!-- Student ID -->
+            <div class="fl-group">
+              <span class="icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="opacity-90">
+                  <rect x="3" y="5" width="18" height="14" rx="2" stroke="#c7d2fe" stroke-width="1.6"/>
+                  <path d="M7 9h6M7 13h4" stroke="#c7d2fe" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <input type="text" id="studentId" name="studentId" class="fl-input" placeholder="Student ID" required />
+              <label for="studentId" class="fl-label">Student ID</label>
+            </div>
+
+            <!-- Phone -->
+            <div class="fl-group">
+              <span class="icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="opacity-90">
+                  <path d="M6.5 3h11l1 5-5 1-1 3c-1.3.6-3.4 1.6-6 3-1.3-3.6-1.9-5.7-2-6l3-6Z" stroke="#c7d2fe" stroke-width="1.6" opacity=".0"/>
+                  <path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm3 17h6" stroke="#c7d2fe" stroke-width="1.6"/>
+                </svg>
+              </span>
+              <input type="tel" id="phone" name="phone" class="fl-input" placeholder="Phone Number" inputmode="numeric" pattern="[0-9]{10}" />
+              <label for="phone" class="fl-label">Phone Number (10 digits)</label>
+              <p class="hint mt-2 text-indigo-100/70 hidden" id="phoneHint">Use 10 digits (e.g., 9876543210)</p>
+            </div>
+
+            <!-- Exam Code & Center -->
+            <div class="grid md:grid-cols-2 gap-5">
+              <div class="fl-group">
+                <span class="icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="opacity-90">
+                    <path d="M12 3l9 5-9 5-9-5 9-5Z" stroke="#c7d2fe" stroke-width="1.6"/>
+                    <path d="M12 13v8" stroke="#c7d2fe" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <input type="text" id="examCode" name="examCode" class="fl-input" placeholder="Exam Code" required />
+                <label for="examCode" class="fl-label">Exam Code</label>
+              </div>
+
+
+
+
+
+               <!-- <div class="fl-group">
+                <select id="examCenter" name="examCenter" class="fl-input pr-10" required>
+                  <option value="" selected disabled></option>
+                  <option>Main Campus</option>
+                  <option>Remote Online</option>
+                </select>
+                <label for="examCenter" class="fl-label">Exam Center</label>
+                <span class="chev">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="m6 9 6 6 6-6" stroke="#c7d2fe" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </span>
+              </div>
+            </div> -->
+
+
+
+
+
+<!-- 
+
+<div class="fl-group">
+  <select id="examCenter" name="examCenter" class="fl-input pr-10 visible-select" required>
+    <option value="" selected disabled>Select Exam Center</option>
+    <option>Main Campus</option>
+    <option>Remote Online</option>
+  </select>
+  <label for="examCenter" class="fl-label">Exam Center</label>
+  <span class="chev">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="m6 9 6 6 6-6" stroke="#6366f1" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </span>
+</div>
+
+<style>
+  /* Simple visible select design */
+  .visible-select {
+    background: #ffffff !important;
+    color: #111827; /* Tailwind slate-900 */
+    border: 1px solid #cbd5e1; /* slate-300 */
+    border-radius: 0.75rem;
+    padding: 0.9rem 1rem 0.9rem 2.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    appearance: none;
+  }
+
+  .visible-select:focus {
+    outline: none;
+    border-color: #6366f1; /* indigo-500 */
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.15);
+  }
+
+  .visible-select option {
+    background: #ffffff;
+    color: #111827;
+    padding: 10px;
+  }
+
+  .visible-select option[disabled] {
+    color: #9ca3af; /* gray-400 */
+  }
+</style>
+ -->
+
+
+
+
+
+
+<div class="fl-group">
+  <div class="custom-select-wrapper">
+    <select id="examCenter" name="examCenter" class="custom-select" required>
+      <option value="" selected disabled>Select Exam Center</option>
+      <option>Main Campus</option>
+      <option>Remote Online</option>
+    </select>
+    <span class="custom-arrow">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="m6 9 6 6 6-6" stroke="#4f46e5" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </div>
+  <label for="examCenter" class="custom-label">Exam Center</label>
+</div>
+
+<style>
+  /* Modern glassy dropdown */
+  .custom-select-wrapper {
+    position: relative;
+    display: block;
+  }
+
+  .custom-select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    color: #111827;
+    border: 1.5px solid rgba(203, 213, 225, 0.8); /* gray-300 */
+    border-radius: 0.75rem;
+    padding: 0.9rem 2.5rem 0.9rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .custom-select:hover {
+    border-color: #6366f1;
+    background: rgba(255, 255, 255, 1);
+  }
+
+  .custom-select:focus {
+    outline: none;
+    border-color: #6366f1; /* indigo-500 */
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    background: #fff;
+  }
+
+  .custom-select option {
+    background: #fff;
+    color: #111827;
+    padding: 10px;
+  }
+
+  .custom-select option[disabled] {
+    color: #9ca3af;
+  }
+
+  .custom-arrow {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: transform 0.3s ease;
+  }
+
+  .custom-select:focus + .custom-arrow {
+    transform: translateY(-50%) rotate(180deg);
+  }
+
+  .custom-label {
+    display: block;
+    margin-top: 0.5rem;
+    color: #475569;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+</style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <!-- Only this block -->
+<!-- <div class="fl-group">
+  <select id="examCenter" name="examCenter" class="fl-input pr-10" required aria-label="Exam Center">
+    <option value="" selected disabled>Select exam center</option>
+    <option>Main Campus</option>
+    <option>Remote Online</option>
+  </select>
+  <label for="examCenter" class="fl-label">Exam Center</label>
+  <span class="chev">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="m6 9 6 6 6-6" stroke="#64748b" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </span>
+</div>
+
+<style>
+  /* === Simple, visible UI just for this select === */
+  #examCenter{
+    background:#ffffff !important;      /* solid white for clarity */
+    color:#0f172a;                       /* dark text */
+    border:1px solid #cbd5e1;           /* slate-300 */
+  }
+  #examCenter:focus{
+    background:#ffffff;
+    border-color:#6366f1;               /* indigo-500 */
+    box-shadow:0 0 0 4px rgba(99,102,241,.18);
+    outline:none;
+  }
+  /* Keep the floating label small and out of the way when focused */
+  #examCenter:focus + .fl-label{
+    top:-.55rem; left:2.5rem;
+    font-size:.75rem; background:#ffffff; color:#334155;
+    padding:0 .35rem; border-radius:.35rem;
+  }
+  /* Placeholder option looks muted */
+  #examCenter option[disabled]{ color:#94a3b8; }
+</style>
+
+ -->
+
+
+
+            <!-- Terms -->
+            <label for="terms" class="flex items-start gap-3 cursor-pointer">
+              <input id="terms" type="checkbox" required class="mt-1 h-5 w-5 rounded-md border border-white/30 bg-white/10 accent-indigo-500">
+              <span class="text-sm text-indigo-100/90">
+                I agree to the
+                <a href="#" class="underline decoration-indigo-400 hover:text-white">terms &amp; conditions</a>.
+              </span>
+            </label>
+
+            <!-- Submit -->
+            <button type="submit" id="submitBtn" class="btn-primary w-full flex items-center justify-center gap-2">
+              <span id="btnIcon" class="inline-block">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                  <path d="m13 5 7 7-7 7" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span>Start Exam</span>
+            </button>
+
+            <!-- Success Toast -->
+            <div id="successMessage" class="toast hidden mt-4 rounded-xl p-4 text-emerald-200">
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-md bg-emerald-400/20 grid place-items-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#34d399" stroke-width="2" stroke-linecap="round"/></svg>
+                </span>
+                <p><strong class="text-emerald-300">Success!</strong> Your registration is complete. Redirecting…</p>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer-grad w-full py-5 shadow-inner">
+    <p class="text-center text-indigo-100 text-sm">
+      &copy; 2025 Exam System. Developed by <span class="font-semibold text-white">Digital Dreamerssz</span>
+    </p>
+  </footer>
+
+  <script>
+    const form = document.getElementById('registrationForm');
+    const successMsg = document.getElementById('successMessage');
+    const phone = document.getElementById('phone');
+    const phoneHint = document.getElementById('phoneHint');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnIcon = document.getElementById('btnIcon');
+
+    // Light validation hint for phone
+    phone?.addEventListener('input', () => {
+      if (!phone.value) {
+        phoneHint.classList.add('hidden');
+        phone.setCustomValidity('');
+        return;
+      }
+      const ok = /^[0-9]{10}$/.test(phone.value);
+      phoneHint.classList.toggle('hidden', ok);
+      phone.setCustomValidity(ok ? '' : 'Enter 10 digits');
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      // Basic constraint validation
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      // Show loading state
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+      btnIcon.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="animate-spin">
+          <circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" opacity=".25"></circle>
+          <path d="M21 12a9 9 0 0 0-9-9" stroke="white" stroke-width="2" stroke-linecap="round"></path>
+        </svg>`;
+
+      // Collect user data (trim + encode)
+      const fullName = encodeURIComponent(document.getElementById('fullName').value.trim());
+      const email = encodeURIComponent(document.getElementById('email').value.trim());
+      const studentId = encodeURIComponent(document.getElementById('studentId').value.trim());
+
+      // Persist minimal data locally (optional UX)
+      try {
+        localStorage.setItem('exam_reg_name', decodeURIComponent(fullName));
+        localStorage.setItem('exam_reg_email', decodeURIComponent(email));
+        localStorage.setItem('exam_reg_id', decodeURIComponent(studentId));
+      } catch {}
+
+      // Show success toast
+      successMsg.classList.remove('hidden');
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        window.location.href = `screen2.html?fullName=${fullName}&email=${email}&studentId=${studentId}`;
+      }, 1400);
+    });
+
+    // Prefill from local storage (if any)
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const n = localStorage.getItem('exam_reg_name') || '';
+        const e = localStorage.getItem('exam_reg_email') || '';
+        const s = localStorage.getItem('exam_reg_id') || '';
+        if (n) document.getElementById('fullName').value = n;
+        if (e) document.getElementById('email').value = e;
+        if (s) document.getElementById('studentId').value = s;
+      } catch {}
+    });
+  </script>
+</body>
+</html>
